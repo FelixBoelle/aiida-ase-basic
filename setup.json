@@ -18,7 +18,7 @@
             "ase_basic = aiida_ase_basic.data:DiffParameters"
         ],
         "aiida.calculations": [
-            "ase_basic = aiida_ase_basic.calculations:DiffCalculation"
+            "ase_basic = aiida_ase_basic.calculations:ASECalculation"
         ],
         "aiida.parsers": [
             "ase_basic = aiida_ase_basic.parsers:DiffParser"
