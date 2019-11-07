@@ -9,7 +9,7 @@ import six
 
 from aiida.common import datastructures
 from aiida.engine import CalcJob
-from aiida.orm import SinglefileData
+from aiida.orm import SinglefileData, Dict
 from aiida.plugins import DataFactory
 
 StructureData = DataFactory('structure')
@@ -20,7 +20,6 @@ class ASECalculation(CalcJob):
     """
     AiiDA calculation plugin for tracking the provenance of ASE calculations.
     """
-
     @classmethod
     def define(cls, spec):
         """Define inputs and outputs of the calculation."""
@@ -32,8 +31,10 @@ class ASECalculation(CalcJob):
         #spec.input('parameters', valid_type=DiffParameters, help='Command line parameters for diff')
         spec.input('script', valid_type=SinglefileData, help='ASE script.')
         spec.input('structure', valid_type=StructureData, help='Atomic structure.', required=False)
-        spec.input_namespace('files', valid_type=SinglefileData, dynamic=True, required=False, help="Add arbitrary input files needed by the run.")
-        spec.output_namespace('files', valid_type=SinglefileData, dynamic=True, help="Output files produced by the run that are stored for further processing.")
+        spec.input_namespace('files', valid_type=SinglefileData, dynamic=True, required=False,
+                             help="Add arbitrary input files needed by the run.")
+        spec.output_namespace('files', valid_type=(SinglefileData,Dict), dynamic=True,
+                              help="Output files produced by the run that are stored for further processing.")
 
         spec.exit_code(100, 'ERROR_MISSING_OUTPUT_FILES', message='Calculation did not produce all expected output files.')
 

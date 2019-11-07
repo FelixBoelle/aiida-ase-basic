@@ -7,9 +7,11 @@ Register parsers via the "aiida.parsers" entry point in setup.json.
 from __future__ import absolute_import
 
 import os
+import json
 from aiida.engine import ExitCode
 from aiida.parsers.parser import Parser
 from aiida.plugins import CalculationFactory
+from aiida import orm
 
 ASECalculation = CalculationFactory('ase_basic')
 
@@ -18,7 +20,6 @@ class DiffParser(Parser):
     """
     Parser class for parsing output of calculation.
     """
-
     def __init__(self, node):
         """
         Initialize Parser instance
@@ -41,7 +42,7 @@ class DiffParser(Parser):
         """
         from aiida.orm import SinglefileData
 
-        output_filename = self.node.get_option('output_filename')
+        # output_filename = self.node.get_option('output_filename')
 
         # # Check that folder content is as expected
         # files_retrieved = self.retrieved.list_object_names()
@@ -58,15 +59,17 @@ class DiffParser(Parser):
             node = self.node.inputs[label]
             if isinstance(node, SinglefileData):
                 input_files.append(node.filename)
-            
+
         for filename in self.retrieved.list_object_names():
             # select some output files for further parsing
             # logic based on file extension could go here
             if filename not in input_files and filename.endswith('json'):
                 self.logger.info("Adding '{}'".format(filename))
                 with self.retrieved.open(filename, 'rb') as handle:
-                    output_node = SinglefileData(file=handle)
+                    #output_node = SinglefileData(file=handle)
+                    output_node = orm.Dict(dict=json.load(handle))
 
-                self.out('files.{}'.format(os.path.splitext(filename)[0]), output_node)
+                self.out('files.{}'.format(os.path.splitext(filename)[0]),
+                         output_node)
 
         return ExitCode(0)
