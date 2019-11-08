@@ -21,7 +21,7 @@
             "ase_basic = aiida_ase_basic.calculations:ASECalculation"
         ],
         "aiida.parsers": [
-            "ase_basic = aiida_ase_basic.parsers:DiffParser"
+            "ase_basic = aiida_ase_basic.parsers:AseParser"
         ],
         "aiida.cmdline.data": [
             "ase_basic = aiida_ase_basic.cli:data_cli"

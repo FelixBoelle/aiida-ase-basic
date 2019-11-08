@@ -36,8 +36,10 @@ class ASECalculation(CalcJob):
         spec.output_namespace('files', valid_type=(SinglefileData,Dict), dynamic=True,
                               help="Output files produced by the run that are stored for further processing.")
 
-        spec.exit_code(100, 'ERROR_MISSING_OUTPUT_FILES', message='Calculation did not produce all expected output files.')
-
+        spec.exit_code(100, 'ERROR_MISSING_OUTPUT_FILES',
+                       message='Calculation did not produce all expected output files.')
+        spec.exit_code(200, 'ERROR_STDERR_SCHEDULER',
+                       message='The _scheduler-stderr.txt file showed an error.')
 
     def prepare_for_submission(self, folder):
         """

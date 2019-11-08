@@ -12,11 +12,12 @@ from aiida.engine import ExitCode
 from aiida.parsers.parser import Parser
 from aiida.plugins import CalculationFactory
 from aiida import orm
+from aiida.common import exceptions
 
 ASECalculation = CalculationFactory('ase_basic')
 
 
-class DiffParser(Parser):
+class AseParser(Parser):
     """
     Parser class for parsing output of calculation.
     """
@@ -29,8 +30,7 @@ class DiffParser(Parser):
         :param node: ProcessNode of calculation
         :param type node: :class:`aiida.orm.ProcessNode`
         """
-        from aiida.common import exceptions
-        super(DiffParser, self).__init__(node)
+        super(AseParser, self).__init__(node)
         if not issubclass(node.process_class, ASECalculation):
             raise exceptions.ParsingError("Can only parse ASECalculation")
 
@@ -41,6 +41,12 @@ class DiffParser(Parser):
         :returns: an exit code, if parsing fails (or nothing if parsing succeeds)
         """
         from aiida.orm import SinglefileData
+
+        # first check if folder was retrieved at all
+        try:
+            output_folder = self.retrieved
+        except exceptions.NotExistent:
+            return self.exit_codes.ERROR_NO_RETRIEVED_FOLDER
 
         # output_filename = self.node.get_option('output_filename')
 
@@ -71,5 +77,15 @@ class DiffParser(Parser):
 
                 self.out('files.{}'.format(os.path.splitext(filename)[0]),
                          output_node)
+
+        # before exiting with exitcode 0 check the stderr file for errors
+        # look at warnings
+        std_err_file = '_scheduler-stderr.txt'
+        with output_folder.open(std_err_file, 'r') as handle:
+            errors = handle.read()
+            for line in errors.split('\n'):
+                if 'Error' in line:
+                    self.logger.error(f'Found error in {std_err_file}: {line}')
+                    return self.exit_codes.ERROR_STDERR_SCHEDULER
 
         return ExitCode(0)
