@@ -6,15 +6,17 @@ Register parsers via the "aiida.parsers" entry point in setup.json.
 """
 from __future__ import absolute_import
 
+from __future__ import print_function
 import os
 import json
 from aiida.engine import ExitCode
 from aiida.parsers.parser import Parser
-from aiida.plugins import CalculationFactory
+from aiida.plugins import CalculationFactory, DataFactory
 from aiida import orm
 from aiida.common import exceptions
 
 ASECalculation = CalculationFactory('ase_basic')
+StructureData = DataFactory('structure')
 
 
 class AseParser(Parser):
@@ -41,6 +43,7 @@ class AseParser(Parser):
         :returns: an exit code, if parsing fails (or nothing if parsing succeeds)
         """
         from aiida.orm import SinglefileData
+        import ase.io
 
         # first check if folder was retrieved at all
         try:
@@ -65,6 +68,8 @@ class AseParser(Parser):
             node = self.node.inputs[label]
             if isinstance(node, SinglefileData):
                 input_files.append(node.filename)
+            if isinstance(node, StructureData):
+                input_files.append(ASECalculation.input_aseatoms)
 
         for filename in self.retrieved.list_object_names():
             # select some output files for further parsing
@@ -77,15 +82,35 @@ class AseParser(Parser):
 
                 self.out('files.{}'.format(os.path.splitext(filename)[0]),
                          output_node)
+            # also add any traj file as output structure
+            if filename not in input_files and filename.endswith('traj'):
+                with self.retrieved.open(filename, 'r') as handle:
+                    atoms = ase.io.read(handle.name)
+                    output_node = orm.StructureData(ase=atoms)
+                # does that brake if there are more than 2 output traj!?
+                self.out('structures.{}'.format(os.path.splitext(filename)[0]),
+                         output_node)
 
+        ExitCode = self.check_for_errors(output_folder=output_folder,
+                                         std_err_file='_scheduler-stderr.txt')
         # before exiting with exitcode 0 check the stderr file for errors
         # look at warnings
-        std_err_file = '_scheduler-stderr.txt'
+
+        return ExitCode
+
+    def check_for_errors(self,
+                         output_folder,
+                         std_err_file='_scheduler-stderr.txt'):
+        """ Go into error file and find Error message if present """
+
         with output_folder.open(std_err_file, 'r') as handle:
             errors = handle.read()
+            print("yes i am reading that, and look at what i read: ")
+            print(errors)
             for line in errors.split('\n'):
                 if 'Error' in line:
                     self.logger.error(f'Found error in {std_err_file}: {line}')
                     return self.exit_codes.ERROR_STDERR_SCHEDULER
 
+        # all is good if nothing has been found
         return ExitCode(0)

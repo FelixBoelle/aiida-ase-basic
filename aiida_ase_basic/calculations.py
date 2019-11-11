@@ -20,6 +20,9 @@ class ASECalculation(CalcJob):
     """
     AiiDA calculation plugin for tracking the provenance of ASE calculations.
     """
+
+    input_aseatoms = 'atoms_in.traj'
+
     @classmethod
     def define(cls, spec):
         """Define inputs and outputs of the calculation."""
@@ -35,6 +38,8 @@ class ASECalculation(CalcJob):
                              help="Add arbitrary input files needed by the run.")
         spec.output_namespace('files', valid_type=(SinglefileData,Dict), dynamic=True,
                               help="Output files produced by the run that are stored for further processing.")
+        spec.output_namespace('structures', valid_type=StructureData, dynamic=True,
+                              help="Output ase structures in '.traj' format produced by the run.")
 
         spec.exit_code(100, 'ERROR_MISSING_OUTPUT_FILES',
                        message='Calculation did not produce all expected output files.')
@@ -65,6 +70,14 @@ class ASECalculation(CalcJob):
         #  * if something is passed to the top-level "structure" input, write the file out in a given format
         #  * if type of file is X, pre-process using procedure Y
         #  * ...
+
+        # input ase structure if present
+        if 'structure' in self.inputs:
+            atoms = self.inputs.structure.get_ase()
+            # TO DO if isinstanc(TrajectoryData) for MD simulations
+            with folder.open(self.input_aseatoms, 'w') as handle:
+                atoms.write(handle.name, format='traj')
+
         if 'files' in self.inputs:
             for f in self.inputs.files:
                 node = self.inputs.files[f]
