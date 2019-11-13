@@ -6,6 +6,7 @@ Register calculations via the "aiida.calculations" entry point in setup.json.
 from __future__ import absolute_import
 
 import six
+import json
 
 from aiida.common import datastructures
 from aiida.engine import CalcJob
@@ -22,6 +23,7 @@ class ASECalculation(CalcJob):
     """
 
     input_aseatoms = 'atoms_in.traj'
+    input_params = 'input_params.json'
 
     @classmethod
     def define(cls, spec):
@@ -34,6 +36,7 @@ class ASECalculation(CalcJob):
         #spec.input('parameters', valid_type=DiffParameters, help='Command line parameters for diff')
         spec.input('script', valid_type=SinglefileData, help='ASE script.')
         spec.input('structure', valid_type=StructureData, help='Atomic structure.', required=False)
+        spec.input('input_params', valid_type=Dict, help='Specificiations for input', required=False)
         spec.input_namespace('files', valid_type=SinglefileData, dynamic=True, required=False,
                              help="Add arbitrary input files needed by the run.")
         spec.output_namespace('files', valid_type=(SinglefileData,Dict), dynamic=True,
@@ -77,6 +80,12 @@ class ASECalculation(CalcJob):
             # TO DO if isinstanc(TrajectoryData) for MD simulations
             with folder.open(self.input_aseatoms, 'w') as handle:
                 atoms.write(handle.name, format='traj')
+
+        # save input_params as json in folder if present
+        if 'input_params' in self.inputs:
+            dic = self.inputs.input_params.attributes
+            with folder.open(self.input_params, 'w') as handle:
+                json.dump(dic, handle)
 
         if 'files' in self.inputs:
             for f in self.inputs.files:

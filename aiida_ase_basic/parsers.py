@@ -70,6 +70,8 @@ class AseParser(Parser):
                 input_files.append(node.filename)
             if isinstance(node, StructureData):
                 input_files.append(ASECalculation.input_aseatoms)
+            if isinstance(node, orm.Dict):
+                input_files.append(ASECalculation.input_params)
 
         for filename in self.retrieved.list_object_names():
             # select some output files for further parsing
